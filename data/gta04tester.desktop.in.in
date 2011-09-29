@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=0.1
+_Name=GTA04 Tester
+_GenericName=GTA04 test application
+_Comment=Vala application to automatically test a GTA04's hardware functionallity
+Exec=gta04tester
+Icon=gta04tester
+Terminal=false
+Categories=Programming
+StartupNotify=true
