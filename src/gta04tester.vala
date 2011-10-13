@@ -198,6 +198,17 @@ class GTA04.Tester {
         usb();
         gtm601();
         gtm601_imei();
+        bmp085();
+        itg3200();
+        bma180();
+        lis302();
+        si47xx();
+        tsc2007();
+        hmc5883l();
+        tca6507();
+        tps61050();
+        ov9655();
+        m24lr64();
         return null;
     }
 
@@ -223,23 +234,55 @@ class GTA04.Tester {
     /* Test: GTM601 */
     private bool gtm601()
     {
-        // TODO: this is just a test, which returns after waiting for 1 sec.
-        Posix.sleep( 1 );
-        //var res = Posix.system( @"echo GTM601-Test" );
         var tcase = ui.testcases.get( "gtm601" );
-        tcase.update( ui, true, "Test..." );
-        return true;
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; lsusb' | fgrep '0af0:8800 Option'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false, "" );
+            return false;
+        }
     }
 
     /* Test: GTM601-IMEI */
     private bool gtm601_imei()
     {
-        // TODO: this is just a test, which reads an existing file on a device and passes the output to our GUI
         var tcase = ui.testcases.get( "gtm601_imei" );
-        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 'cat /media/internal/test-imei' > /tmp/IMEI" );
-        if( res == 0 )
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; (echo AT+CGSN; sleep 1) | ./femtocom /dev/ttyHS3' | fgrep ',' >/tmp/IMEI" );
+        if ( res == 0 )
         {
             var file = File.new_for_path ("/tmp/IMEI");
+            try
+            {
+                var dis = new DataInputStream (file.read ());
+                string line = dis.read_line( null );
+                tcase.update( ui, true, line[0:line.length-1] ); //-1: don't write the newline character (\n)
+            }
+            catch ( Error e )
+            {
+                stderr.printf("%s\n", e.message);
+            }
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: BMP085 */
+    private bool bmp085()
+    {
+        var tcase = ui.testcases.get( "bmp085" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; cat /sys/bus/i2c/devices/i2c-2/2-0077/pressure' >/tmp/values" );
+        if ( res == 0 )
+        {
+            var file = File.new_for_path ("/tmp/values");
             try
             {
                 var dis = new DataInputStream (file.read ());
@@ -250,6 +293,206 @@ class GTA04.Tester {
             {
                 stderr.printf("%s\n", e.message);
             }
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: ITG3200 */
+    private bool itg3200()
+    {
+        var tcase = ui.testcases.get( "itg3200" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; cat /sys/bus/i2c/devices/i2c-2/2-0068/values' | fgrep ' ' >/tmp/values" );
+        if ( res == 0 )
+        {
+            var file = File.new_for_path ("/tmp/values");
+            try
+            {
+                var dis = new DataInputStream (file.read ());
+                string line = dis.read_line( null );
+                tcase.update( ui, true, line );
+            }
+            catch ( Error e )
+            {
+                stderr.printf("%s\n", e.message);
+            }
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: BMA180 */
+    private bool bma180()
+    {
+        var tcase = ui.testcases.get( "bma180" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; cat /sys/bus/i2c/devices/i2c-2/2-0041/coord' | fgrep ',' >/tmp/values" );
+        if ( res == 0 )
+        {
+            var file = File.new_for_path ("/tmp/values");
+            try
+            {
+                var dis = new DataInputStream (file.read ());
+                string line = dis.read_line( null );
+                tcase.update( ui, true, line );
+            }
+            catch ( Error e )
+            {
+                stderr.printf("%s\n", e.message);
+            }
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: LIS302 */
+    private bool lis302()
+    {
+        var tcase = ui.testcases.get( "lis302" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x1d 0x1d' | fgrep ' 1d'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: Si47xx */
+    private bool si47xx()
+    {
+        var tcase = ui.testcases.get( "si47xx" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x11 0x11' | fgrep ' UU'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: TSC2007 */
+    private bool tsc2007()
+    {
+        var tcase = ui.testcases.get( "tsc2007" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; cat /sys/bus/i2c/devices/i2c-2/2-0048/values' | fgrep ',' >/tmp/values" );
+        if ( res == 0 )
+        {
+            var file = File.new_for_path ("/tmp/values");
+            try
+            {
+                var dis = new DataInputStream (file.read ());
+                string line = dis.read_line( null );
+                tcase.update( ui, true, line );
+            }
+            catch ( Error e )
+            {
+                stderr.printf("%s\n", e.message);
+            }
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: HMC5883L */
+    private bool hmc5883l()
+    {
+        var tcase = ui.testcases.get( "hmc5883l" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x1d 0x1e' | fgrep ' 1e'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: TCA6507 */
+    private bool tca6507()
+    {
+        var tcase = ui.testcases.get( "tca6507" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x45 0x45' | fgrep ' UU'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: TPS61050 */
+    private bool tps61050()
+    {
+        var tcase = ui.testcases.get( "tps61050" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x33 0x33' | fgrep ' 33'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: OV9655 */
+    private bool ov9655()
+    {
+        var tcase = ui.testcases.get( "ov9655" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x30 0x30' | fgrep ' UU'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: M24LR64 */
+    private bool m24lr64()
+    {
+        var tcase = ui.testcases.get( "m24lr64" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo y |i2cdetect -r 2 0x50 0x50' | fgrep ' 50'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
             return true;
         }
         else
