@@ -209,6 +209,8 @@ class GTA04.Tester {
         tps61050();
         ov9655();
         m24lr64();
+        rs232();
+        w2sg0004();
         return null;
     }
 
@@ -500,6 +502,66 @@ class GTA04.Tester {
             tcase.update( ui, false );
             return false;
         }
+    }
+
+    /* Test: RS232 */
+    private bool rs232()
+    {
+        var tcase = ui.testcases.get( "rs232" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; (echo hello world; sleep 1) | /root/femtocom /dev/ttyS2' | fgrep 'hello world'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: W2SG0004 */
+    private bool w2sg0004()
+    {
+        var tcase = ui.testcases.get( "w2sg0004" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo 0 >/sys/devices/virtual/gpio/gpio145/value;echo 1 >/sys/devices/virtual/gpio/gpio145/value; stty 9600 </dev/ttyS1'" );
+        int nok = 0;
+        if ( res == 0 )
+        {
+            while ( true )
+            {
+                var res2 = Posix.system( "ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; read -t 2 </dev/ttyS1 LINE; echo $LINE' | fgrep '$GP' >/tmp/GPS" );
+                if ( res2 == 0 )
+                {
+                    var file = File.new_for_path ("/tmp/GPS");
+                    try
+                    {
+                        var dis = new DataInputStream (file.read ());
+                        string line = dis.read_line( null );
+                        tcase.update( ui, true, line );
+                    }
+                    catch ( Error e )
+                    {
+                        stderr.printf("%s\n", e.message);
+                    }
+                    return true;
+                }
+                else nok++;
+                if ( nok > 3 ) // retrigger the gpio145
+                {
+                    Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo 0 >/sys/devices/virtual/gpio/gpio145/value;echo 1 >/sys/devices/virtual/gpio/gpio145/value; stty 9600 </dev/ttyS1'" );
+                }
+                Posix.sleep( 1 );
+                if(nok > 6)
+                {
+                    tcase.update( ui, false );
+                    break;
+                }
+                Posix.sleep( 1 );
+            }
+        }
+        return false;
     }
 }
 
