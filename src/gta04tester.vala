@@ -175,8 +175,7 @@ public class GTA04.UI: Window
 
     private void onShutdownBtnClicked()
     {
-        // TODO: fill me
-        stdout.printf( "onShutdownBtnClicked()\n" );
+        var res = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; shutdown -h now;'" );
     }
 
     private void onPrintBtnClicked()
@@ -211,6 +210,10 @@ class GTA04.Tester {
         m24lr64();
         rs232();
         w2sg0004();
+        _init_wlan_bt();
+        w2cbw003_wlan();
+        //w2cbw003_bt();
+        stdout.printf( @"Done.\n" );
         return null;
     }
 
@@ -227,6 +230,7 @@ class GTA04.Tester {
             if( res == 0 )
             {
                 tcase.update( ui, true, _(@"found device: $ip") );
+                Posix.sleep( 5 );
                 return true;
             }
             Posix.sleep( 1 );
@@ -550,7 +554,7 @@ class GTA04.Tester {
                 else nok++;
                 if ( nok > 3 ) // retrigger the gpio145
                 {
-                    Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo 0 >/sys/devices/virtual/gpio/gpio145/value;echo 1 >/sys/devices/virtual/gpio/gpio145/value; stty 9600 </dev/ttyS1'" );
+                    var res3 = Posix.system( @"ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; echo 0 >/sys/devices/virtual/gpio/gpio145/value;echo 1 >/sys/devices/virtual/gpio/gpio145/value; stty 9600 </dev/ttyS1'" );
                 }
                 Posix.sleep( 1 );
                 if(nok > 6)
@@ -562,6 +566,51 @@ class GTA04.Tester {
             }
         }
         return false;
+    }
+
+    /* Init WLAN/BT to test them */
+    private bool _init_wlan_bt()
+    {
+        // Power on WLAN/BT chip
+        var res = Posix.system( "ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; VDD=3150000; echo 255 >/sys/class/leds/tca6507:6/brightness; echo $VDD >/sys/devices/platform/reg-virt-consumer.4/max_microvolts; echo $VDD >/sys/devices/platform/reg-virt-consumer.4/min_microvolts; echo normal >/sys/devices/platform/reg-virt-consumer.4/mode; echo 0 >/sys/class/leds/tca6507:6/brightness; '" );
+        Posix.sleep( 1 );
+        // Start daemon (returns an error if already started)
+        //var res2 = Posix.system( "ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; hciattach -n -s 115200 /dev/ttyS0 any 115200 flow&'" );
+        return true;
+    }
+
+    /* Test: W2CBW003-WLAN */
+    private bool w2cbw003_wlan()
+    {
+        var tcase = ui.testcases.get( "w2cbw003_wlan" );
+        var res = Posix.system( "ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; ifconfig $(iwconfig|fgrep wlan|(read IF X Y ESSID; echo $IF)) up'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
+    }
+
+    /* Test: W2CBW003-BT */
+    private bool w2cbw003_bt()
+    {
+        var tcase = ui.testcases.get( "w2cbw003_bt" );
+        var res = Posix.system( "ssh -o 'ConnectTimeout 2' root@192.168.0.202 sh -c 'cd; hciconfig hci0 up'" );
+        if ( res == 0 )
+        {
+            tcase.update( ui, true, "" );
+            return true;
+        }
+        else
+        {
+            tcase.update( ui, false );
+            return false;
+        }
     }
 }
 
