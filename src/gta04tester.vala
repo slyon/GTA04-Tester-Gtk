@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2011 Lukas Märdian <lukasmaerdian@gmail.com>
+ * Copyright (C) 2011-2015 Lukas Märdian <luk@slyon.de>
  * 
  * This file is part of the GTA04 Tester.
  * 
