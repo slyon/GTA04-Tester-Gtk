@@ -72,8 +72,14 @@ public class GTA04.UI: Window
 
     public UI()
     {
-        title = "GTA04 Tester";
         set_default_size( 700, 500 );
+
+        Gtk.HeaderBar header = new Gtk.HeaderBar();
+        header.set_title ("GTA04 Tester");
+        header.set_subtitle ("Test your phones functionallity.");
+        header.show_close_button = true;
+        set_titlebar(header);
+
         set_position( WindowPosition.CENTER );
         destroy.connect( Gtk.main_quit );
 
@@ -266,7 +272,7 @@ class GTA04.Tester {
             {
                 var dis = new DataInputStream (file.read ());
                 string line = dis.read_line( null );
-                tcase.update( ui, true, line[0:line.length-1] ); //-1: don't write the newline character (\n)
+                tcase.update( ui, true, line[0:line.length-1] ); //-1: don't write the 2nd newline character (\n)
             }
             catch ( Error e )
             {
